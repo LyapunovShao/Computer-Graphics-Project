@@ -35,12 +35,12 @@ def parse_path(*paths):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
-    parser.add_argument("model_config", type=str, help="The path for model configuration")
+    parser.add_argument("-m","--model_config", type=str, default="conf/pointSIFT/pointSIFT.pyconf", help="The path for model configuration")
     parser.add_argument("-d", "--data", type=str, default="", help=DATA_OPTIONS_DESCRIPTION)
     parser.add_argument("-s", "--save", type=str, default="", help=SAVE_OPTIONS_DESCRIPTION)
     args = parser.parse_args()
 
-    model_conf_path = parse_path(args.model_config)
+    model_conf_path = parse_path(args.model_config) 
     root_data_dir = parse_path(args.data) if args.data else ""
     root_save_dir = parse_path(args.save) if args.save else ""
 

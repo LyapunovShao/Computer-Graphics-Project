@@ -4,7 +4,7 @@ import h5py
 from logger import log
 from utils import ioutil
 from utils.confutil import register_conf, object_from_conf
-
+import utils.scannet_dataset
 
 def apply_transforms(dataset, confs, batch_size):
     """
@@ -94,6 +94,23 @@ def load_dataset_h5(dir, data_conf, train_load_policy="normal", test_load_policy
         tf.data.Dataset.from_generator(test_gen, output_types=output_types, output_shapes=output_shapes)
     )
 
+def load_dataset_pickle(dir, data_conf, train_load_policy="normal", test_load_policy="normal", **kwargs):
+    """
+    Load a pickle dataset, this function is specifically written for ScanNet
+    """
+    assert train_load_policy == "normal" and test_load_policy == "normal", "Don't support other policies right now"
+    train_filename = data_conf.get("type",dict()).get("train_file") or "scannet_train.pickle"
+    test_filename = data_conf.get("type",dict()).get("test_file") or "scannet_test.pickle"
+    
+    train_filepath = path.join(dir, train_filename)
+    test_filepath = path.join(dir, test_filename)
+    log("Loading train file=\"{}\", policy={}".format(train_filepath, train_load_policy))
+    log("Loading test file=\"{}\", policy={}".format(test_filepath, test_load_policy))
+
+    # Here we load the pickle file just like the original project
+    return (utils.scannet_dataset.ScannetDataset(root=dir, split='train'),
+            utils.scannet_dataset.ScannetDatasetWholeScene(root=dir, split='test')
+            ) 
 
 def load_dataset(dir, model_conf):
     """
@@ -103,7 +120,8 @@ def load_dataset(dir, model_conf):
     :return: A tuple (train_dataset, test_dataset, conf) where conf is the data configuration
     """
     loaders = {
-        "dataset-h5": load_dataset_h5
+        "dataset-h5": load_dataset_h5,
+        "dataset-pickle": load_dataset_pickle
     }
 
     dir = path.abspath(dir)
@@ -115,9 +133,9 @@ def load_dataset(dir, model_conf):
 
     train_dataset, test_dataset = loaders[conf["type"]["name"]](dir, conf, **model_conf)
     batch_size = model_conf["control"]["batch_size"]
-
-    train_dataset = apply_transforms(train_dataset, model_conf["dataset"].get("train_transforms", []), batch_size)
-    test_dataset = apply_transforms(test_dataset, model_conf["dataset"].get("test_transforms", []), batch_size)
+    if conf["type"]["name"]=="dataset-h5":
+        train_dataset = apply_transforms(train_dataset, model_conf["dataset"].get("train_transforms", []), batch_size)
+        test_dataset = apply_transforms(test_dataset, model_conf["dataset"].get("test_transforms", []), batch_size)
 
     return train_dataset, test_dataset, conf
 
