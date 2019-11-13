@@ -7,7 +7,7 @@ from os import path, makedirs
 import logger
 from utils.kerasutil import ModelCallback
 from utils.confutil import object_from_conf, register_conf
-
+import pdb
 # A fake call to register
 register_conf(name="adam", scope="optimizer", conf_func=lambda conf: tf.keras.optimizers.Adam(**conf))(None)
 register_conf(name="sgd", scope="optimizer", conf_func=lambda conf: tf.keras.optimizers.SGD(**conf))(None)
@@ -31,8 +31,8 @@ def layer_from_config(layer_conf, model_conf, data_conf):
     :param data_conf: The dataset configuration, for generating special layers
     :return: A keras layer
     """
-    context = {"class_count": data_conf["class_count"]}
-    return object_from_conf(layer_conf, scope="layer", context=context)
+    # context = {"class_count": data_conf["class_count"]}
+    return object_from_conf(layer_conf, scope="layer", context=None)
 
 
 def optimizer_from_config(learning_rate, optimizer_conf):
@@ -182,7 +182,7 @@ def net_from_config(model_conf, data_conf):
         layer_confs = net_conf["layers"]
         graph_confs = net_conf["graph"]
         # Generate all the intermediate nodes and use labels to map them
-        
+         
         for conf in layer_confs:
             # Use label to denote the layer
             node_name = conf.get("label", None)
@@ -193,13 +193,13 @@ def net_from_config(model_conf, data_conf):
                 name_to_nodes[node_name] = node
         
         # Create the input graph node and output graph node
-        input_node = InputGraphNode(inputs=inputs)
+        input_node = InputGraphNode(input=inputs)
         output_node = OutputGraphNode()
         assert "input" not in name_to_nodes and "output" not in name_to_nodes, \
             f"Cannot name label of a layer to \"input\" or \"output\", check your layer labels"
         name_to_nodes["input"] = input_node
         name_to_nodes["output"] = output_node
-
+        pdb.set_trace()
         # Create the graph
         for conf in graph_confs:
             node_name = conf.get("label", None)

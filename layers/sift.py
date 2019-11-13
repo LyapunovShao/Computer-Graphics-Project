@@ -10,11 +10,11 @@ from layers.tf_ops.interpolation.tf_interpolate import three_nn, three_interpola
 
 @register_conf(name="SIFT-fc", scope="layer", conf_func="self")
 class pointSIFT_fc_layer(tf.keras.layers.Layer):
-    def __init__(self, out_channel, bn=True, bn_decay=0.9, _name='fc', num_class=21, **kwargs):
+    def __init__(self, out_channel, bn=True, bn_decay=0.9, label='fc', num_class=21, **kwargs):
         super(pointSIFT_fc_layer, self).__init__()
         self.bn = bn
         self.bn_decay = bn_decay
-        self._name = _name
+        self._name = label
         self.num_class = num_class
         self.out_channel = out_channel
         self.sub_layers = dict()
@@ -60,12 +60,12 @@ class pointSIFT_fc_layer(tf.keras.layers.Layer):
 
 @register_conf(name="SIFT-associate", scope="layer", conf_func="self")
 class associate_module(tf.keras.layers.Layer):
-    def __init__(self, channel, bn=True, bn_decay=0.9, _name='asso', **kwargs):
+    def __init__(self, channel, bn=True, bn_decay=0.9, label='asso', **kwargs):
         super(associate_module, self).__init__()
         self.channel = channel
         self.bn = bn
         self.bn_decay = bn_decay
-        self._name = _name
+        self._name = label
         self.sub_layers = dict()
 
     def batch_normalization(self, inputs, name, training):
@@ -101,12 +101,12 @@ class associate_module(tf.keras.layers.Layer):
 
 @register_conf(name="SIFT-res-module", scope="layer", conf_func="self")
 class pointSIFT_res_module(tf.keras.layers.Layer):
-    def __init__(self, radius, out_channel, bn_decay=0.9, _name='SIFT-res', bn=True, use_xyz=True, same_dim=False, merge='add', **kwargs):
+    def __init__(self, radius, out_channel, bn_decay=0.9, label='SIFT-res', bn=True, use_xyz=True, same_dim=False, merge='add', **kwargs):
         super(pointSIFT_res_module, self).__init__()
         self.radius = radius
         self.out_channel = out_channel
         self.bn_decay = bn_decay
-        self._name = _name
+        self._name = label
         self.bn = bn
         self.use_xyz = use_xyz
         self.same_dim = same_dim
@@ -191,12 +191,12 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
 
 @register_conf(name="SIFT-module", scope="layer", conf_func="self")
 class pointSIFT_module(tf.keras.layers.Layer):
-    def __init__(self, radius, out_channel, bn_decay=0.9, _name='SIFT', bn=True, use_xyz=True, **kwargs):
+    def __init__(self, radius, out_channel, bn_decay=0.9, label='SIFT', bn=True, use_xyz=True, **kwargs):
         super(pointSIFT_module, self).__init__()
         self.radius = radius
         self.out_channel = out_channel
         self.bn_decay = bn_decay
-        self._name = _name
+        self._name = label
         self.bn = bn
         self.use_xyz = use_xyz
         self.sub_layers = dict()
@@ -241,7 +241,7 @@ class pointSIFT_module(tf.keras.layers.Layer):
 
 @register_conf(name="pointnet-sa-module", scope="layer", conf_func="self")
 class pointnet_sa_module(tf.keras.layers.Layer):
-    def __init__(self, npoint, radius, nsample, mlp, mlp2=None, group_all=False, bn_decay=0.9, bn=True, pooling='max', use_xyz=True, _name='sa'):
+    def __init__(self, npoint, radius, nsample, mlp, mlp2=None, group_all=False, bn_decay=0.9, bn=True, pooling='max', use_xyz=True, label='sa'):
         self.npoint = npoint
         self.radius = radius
         self.nsample = nsample
@@ -252,7 +252,7 @@ class pointnet_sa_module(tf.keras.layers.Layer):
         self.bn = bn
         self.pooling = pooling
         self.use_xyz = use_xyz
-        self._name = _name
+        self._name = label
         self.sub_layers = dict()
 
     def batch_normalization(self, inputs, name, training):
@@ -306,11 +306,11 @@ class pointnet_sa_module(tf.keras.layers.Layer):
 
 @register_conf(name="pointnet-fp-module", scope="layer", conf_func="self")
 class pointnew_fp_module(tf.keras.layers.Layer):
-    def __init__(self, mlp, bn_decay=0.9, bn=True, _name='fp'):
+    def __init__(self, mlp, bn_decay=0.9, bn=True, label='fp'):
         self.mlp = mlp
         self.bn_decay = bn_decay
         self.bn = bn
-        self._name = _name
+        self._name = label
         self.sub_layers = dict()
 
     def batch_normalization(self, inputs, name, training):
