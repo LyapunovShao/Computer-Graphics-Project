@@ -10,11 +10,11 @@ from layers.tf_ops.interpolation.tf_interpolate import three_nn, three_interpola
 
 @register_conf(name="SIFT-fc", scope="layer", conf_func="self")
 class pointSIFT_fc_layer(tf.keras.layers.Layer):
-    def __init__(self, out_channel, bn=True, bn_decay=0.9, name='fc', num_class=21, **kwargs):
+    def __init__(self, out_channel, bn=True, bn_decay=0.9, _name='fc', num_class=21, **kwargs):
         super(pointSIFT_fc_layer, self).__init__()
         self.bn = bn
         self.bn_decay = bn_decay
-        self.name = name
+        self._name = _name
         self.num_class = num_class
         self.out_channel = out_channel
         self.sub_layers = dict()
@@ -49,10 +49,10 @@ class pointSIFT_fc_layer(tf.keras.layers.Layer):
 
     def call(self, inputs, training, **kwargs):
         points = inputs
-        seg = self.conv1d(points, self.out_channel, 1, self.name+'-conv0', 1,
+        seg = self.conv1d(points, self.out_channel, 1, self._name+'-conv0', 1,
                           padding='VALID', activation_fn='ReLU', training=training)
-        seg = self.dropout(seg, self.name+'-dropout', training=training)
-        seg = self.conv1d(seg, self.num_class, 1, self.name+'-conv1', 1, padding='VALID',
+        seg = self.dropout(seg, self._name+'-dropout', training=training)
+        seg = self.conv1d(seg, self.num_class, 1, self._name+'-conv1', 1, padding='VALID',
                           activation_fn='None', training=training)
         return seg
 
@@ -60,12 +60,12 @@ class pointSIFT_fc_layer(tf.keras.layers.Layer):
 
 @register_conf(name="SIFT-associate", scope="layer", conf_func="self")
 class associate_module(tf.keras.layers.Layer):
-    def __init__(self, channel, bn=True, bn_decay=0.9, name='asso', **kwargs):
+    def __init__(self, channel, bn=True, bn_decay=0.9, _name='asso', **kwargs):
         super(associate_module, self).__init__()
         self.channel = channel
         self.bn = bn
         self.bn_decay = bn_decay
-        self.name = name
+        self._name = _name
         self.sub_layers = dict()
 
     def batch_normalization(self, inputs, name, training):
@@ -95,18 +95,18 @@ class associate_module(tf.keras.layers.Layer):
         for part in inputs:
             points.append(part)
         points = tf.concat(points, axis=-1)
-        points = self.conv1d(points, self.channel, 1, self.name+'-conv', 1, padding='VALID',
+        points = self.conv1d(points, self.channel, 1, self._name+'-conv', 1, padding='VALID',
                              activation_fn='ReLU', training=training)
         return points
 
 @register_conf(name="SIFT-res-module", scope="layer", conf_func="self")
 class pointSIFT_res_module(tf.keras.layers.Layer):
-    def __init__(self, radius, out_channel, bn_decay=0.9, name='SIFT-res', bn=True, use_xyz=True, same_dim=False, merge='add', **kwargs):
+    def __init__(self, radius, out_channel, bn_decay=0.9, _name='SIFT-res', bn=True, use_xyz=True, same_dim=False, merge='add', **kwargs):
         super(pointSIFT_res_module, self).__init__()
         self.radius = radius
         self.out_channel = out_channel
         self.bn_decay = bn_decay
-        self.name = name
+        self._name = _name
         self.bn = bn
         self.use_xyz = use_xyz
         self.same_dim = same_dim
@@ -159,7 +159,7 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
                                                 use_xyz=self.use_xyz)
         for i in range(3):
             new_points = self.conv2d(new_points, self.out_channel, [1, 2],
-                                     self.name+'-c0_conv%d' % (i), [1, 2], padding='VALID',
+                                     self._name+'-c0_conv%d' % (i), [1, 2], padding='VALID',
                                      activation_fn='ReLU', training=training)
         new_points = tf.squeeze(new_points, [2])
         # conv 2
@@ -173,13 +173,13 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
             else:
                 act = 'ReLU'
             new_points = self.conv2d(new_points, self.out_channel, [1, 2],
-                                     self.name+'-c1_conv%d' % (i), [1, 2], padding='VALID',
+                                     self._name+'-c1_conv%d' % (i), [1, 2], padding='VALID',
                                      activation_fn=act, training=training)
         new_points = tf.squeeze(new_points, [2])
         # residual part
         if points is not None:
             if self.same_dim is True:
-                points = self.conv1d(points, self.out_channel, 1, self.name+'-merge_channel_fc', 1, padding='VALID', activation_fn='ReLU', training=training)
+                points = self.conv1d(points, self.out_channel, 1, self._name+'-merge_channel_fc', 1, padding='VALID', activation_fn='ReLU', training=training)
             if self.merge == 'add':
                 new_points = new_points + points
             elif self.merge == 'concat':
@@ -191,12 +191,12 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
 
 @register_conf(name="SIFT-module", scope="layer", conf_func="self")
 class pointSIFT_module(tf.keras.layers.Layer):
-    def __init__(self, radius, out_channel, bn_decay=0.9, name='SIFT', bn=True, use_xyz=True, **kwargs):
+    def __init__(self, radius, out_channel, bn_decay=0.9, _name='SIFT', bn=True, use_xyz=True, **kwargs):
         super(pointSIFT_module, self).__init__()
         self.radius = radius
         self.out_channel = out_channel
         self.bn_decay = bn_decay
-        self.name = name
+        self._name = _name
         self.bn = bn
         self.use_xyz = use_xyz
         self.sub_layers = dict()
@@ -230,18 +230,18 @@ class pointSIFT_module(tf.keras.layers.Layer):
                                                                 self.use_xyz)
         for i in range(3):
             new_points = self.conv2d(new_points, self.out_channel, [1, 2],
-                                     self.name+'-conv%d' % (i), [1, 2], padding='VALID',
+                                     self._name+'-conv%d' % (i), [1, 2], padding='VALID',
                                      activation_fn='ReLU', training=training)
 
         new_points = self.conv2d(new_points, self.out_channel, [1, 1],
-                                 self.name+'-conv_fc', [1, 1], padding='VALID',
+                                 self._name+'-conv_fc', [1, 1], padding='VALID',
                                  activation_fn='ReLU', training=training)
         new_points = tf.squeeze(new_points, [2])
         return new_xyz, new_points, idx
 
 @register_conf(name="pointnet-sa-module", scope="layer", conf_func="self")
 class pointnet_sa_module(tf.keras.layers.Layer):
-    def __init__(self, npoint, radius, nsample, mlp, mlp2=None, group_all=False, bn_decay=0.9, bn=True, pooling='max', use_xyz=True, name='sa'):
+    def __init__(self, npoint, radius, nsample, mlp, mlp2=None, group_all=False, bn_decay=0.9, bn=True, pooling='max', use_xyz=True, _name='sa'):
         self.npoint = npoint
         self.radius = radius
         self.nsample = nsample
@@ -252,7 +252,7 @@ class pointnet_sa_module(tf.keras.layers.Layer):
         self.bn = bn
         self.pooling = pooling
         self.use_xyz = use_xyz
-        self.name = name
+        self._name = _name
         self.sub_layers = dict()
 
     def batch_normalization(self, inputs, name, training):
@@ -288,7 +288,7 @@ class pointnet_sa_module(tf.keras.layers.Layer):
         # Point feature embedding
         for i, num_out_channel in enumerate(self.mlp):
             new_points = self.conv2d(new_points, num_out_channel, [1, 1],
-                                     self.name+'-conv%d' % (i), [1, 1], padding='VALID',
+                                     self._name+'-conv%d' % (i), [1, 1], padding='VALID',
                                      activation_fn='ReLU', training=training)
         # Pooling in local regions
         if self.pooling == 'max':
@@ -303,73 +303,14 @@ class pointnet_sa_module(tf.keras.layers.Layer):
         return new_xyz, new_points, idx
 
 
-class pointnet_sa_module_msg(tf.keras.layers.Layer):
-    def __init__(self, npoint, radius_list, nsample_list, mlp_list, bn_decay, bn=True, use_xyz=True, name='sa-msg'):
-        self.npoint = npoint
-        self.radius_list = radius_list
-        self.nsample_list = nsample_list
-        self.mlp_list = mlp_list
-        self.bn_decay = bn_decay
-        self.bn = bn
-        self.use_xyz = use_xyz
-        self.name = name
-        self.sub_layers = dict()
-
-    def batch_normalization(self, inputs, name, training):
-        layer = self.sub_layers.get(name)
-        if not layer:
-            layer = tf.keras.layers.BatchNormalization(
-                momentum=self.bn_decay, name=name)
-            self.sub_layers[name] = layer
-        return layer(inputs, training=training)
-
-    def conv2d(self, inputs, channel, kernel_size, name, strides, padding, activation_fn, training):
-        layer = self.sub_layers.get(name)
-        if not layer:
-            layer = tf.keras.layers.Conv2D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None, data_format='NHWC')
-            self.sub_layers[name] = layer
-        x = layer(inputs, training=training)
-        if self.bn:
-            x = self.batch_normalization(x, training=training, name=name+"-BN")
-        if activation_fn == 'ReLU':
-            x = tf.nn.relu(x)
-        return x
-
-    def call(self, inputs, training, **kwargs):
-        xyz, points = inputs
-        new_xyz = gather_point(xyz, farthest_point_sample(self.npoint, xyz))
-        new_points_list = []
-        for i in range(len(radius_list)):
-            radius = self.radius_list[i]
-            nsample = self.nsample_list[i]
-            idx, pts_cnt = query_ball_point(radius, nsample, xyz, new_xyz)
-            grouped_xyz = group_point(xyz, idx)
-            grouped_xyz -= tf.tile(tf.expand_dims(new_xyz,
-                                                  2), [1, 1, nsample, 1])
-            if points is not None:
-                grouped_points = group_point(points, idx)
-                if self.use_xyz:
-                    grouped_points = tf.concat(
-                        [grouped_points, grouped_xyz], axis=-1)
-            else:
-                grouped_points = grouped_xyz
-            for j, num_out_channel in enumerate(self.mlp_list[i]):
-                grouped_points = self.conv2d(grouped_points, num_out_channel, [1, 1],
-                                             self.name+'-conv%d_%d' % (i, j), [1, 1], padding='VALID',
-                                             activation_fn='ReLU', training=training)
-            new_points = tf.compat.v1.reduce_max(grouped_points, axis=[2])
-            new_points_list.append(new_points)
-        new_points_concat = tf.concat(new_points_list, axis=-1)
-        return new_xyz, new_points_concat
 
 @register_conf(name="pointnet-fp-module", scope="layer", conf_func="self")
 class pointnew_fp_module(tf.keras.layers.Layer):
-    def __init__(self, mlp, bn_decay=0.9, bn=True, name='fp'):
+    def __init__(self, mlp, bn_decay=0.9, bn=True, _name='fp'):
         self.mlp = mlp
         self.bn_decay = bn_decay
         self.bn = bn
-        self.name = name
+        self._name = _name
         self.sub_layers = dict()
 
     def batch_normalization(self, inputs, name, training):
@@ -410,7 +351,7 @@ class pointnew_fp_module(tf.keras.layers.Layer):
         new_points1 = tf.expand_dims(new_points1, 2)
         for i, num_out_channel in enumerate(mlp):
             new_points1 = self.conv2d(new_points1, num_out_channel, [1, 1],
-                                      self.name+'-conv_%d' % (i), [1, 1],
+                                      self._name+'-conv_%d' % (i), [1, 1],
                                       padding='VALID', activation_fn='ReLU', training=training)
         new_points1 = tf.squeeze(new_points1, [2])
         return new_points1
