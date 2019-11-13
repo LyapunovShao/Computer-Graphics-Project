@@ -107,7 +107,7 @@ class InputGraphNode(GraphNode):
 class IntermediateLayerGraphNode(GraphNode):
     """The normal graph node """
     def __init__(self, layer, param=None):
-        super(IntermediateLayerGraphNode, self).__init__(param):
+        super(IntermediateLayerGraphNode, self).__init__(param)
         self._layer=layer
 
     def _compute(self, inputs):

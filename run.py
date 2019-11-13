@@ -42,7 +42,7 @@ def parse_path(*paths):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
-    parser.add_argument("-m","--model_config", type=str, default="conf/pointSIFT/pointSIFT.pyconf", help="The path for model configuration")
+    parser.add_argument("-M","--model_config", type=str, default="conf/pointSIFT/pointSIFT.pyconf", help="The path for model configuration")
     parser.add_argument("-d", "--data", type=str, default="", help=DATA_OPTIONS_DESCRIPTION)
     parser.add_argument("-s", "--save", type=str, default="", help=SAVE_OPTIONS_DESCRIPTION)
     parser.add_argument("-m", "--mode", type=str, default="new", help=MODE_OPTIONS_DESCRIPTION)

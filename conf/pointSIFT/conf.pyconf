@@ -1,0 +1,13 @@
+{
+    "type": {
+        "name": "dataset-pickle",
+        "train_file": "scannet_train.pickle",
+        "test_file": "scannet_test.pickle",
+    },
+    "task": "segmentation",
+    "feature_size": 3,  # Position
+                        # Point count omitted
+    "class_count": 21,
+                        # labels omitted    
+    "point_count": 8192
+}

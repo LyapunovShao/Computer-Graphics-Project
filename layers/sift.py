@@ -10,7 +10,7 @@ from layers.tf_ops.interpolation.tf_interpolate import three_nn, three_interpola
 
 @register_conf(name="SIFT-fc", scope="layer", conf_func="self")
 class pointSIFT_fc_layer(tf.keras.layers.Layer):
-    def __init__(self, bn=True, out_channel, bn_decay=0.9, name='fc', num_class=21, **kwargs):
+    def __init__(self, out_channel, bn=True, bn_decay=0.9, name='fc', num_class=21, **kwargs):
         super(pointSIFT_fc_layer, self).__init__()
         self.bn = bn
         self.bn_decay = bn_decay
@@ -102,7 +102,7 @@ class associate_module(tf.keras.layers.Layer):
 @register_conf(name="SIFT-res-module", scope="layer", conf_func="self")
 class pointSIFT_res_module(tf.keras.layers.Layer):
     def __init__(self, radius, out_channel, bn_decay=0.9, name='SIFT-res', bn=True, use_xyz=True, same_dim=False, merge='add', **kwargs):
-        super(pointSITF_res_module, self).__init__()
+        super(pointSIFT_res_module, self).__init__()
         self.radius = radius
         self.out_channel = out_channel
         self.bn_decay = bn_decay
@@ -158,7 +158,7 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
                                                 points,
                                                 use_xyz=self.use_xyz)
         for i in range(3):
-            new_points = self.conv2d(new_points, self.out_channel, [1, 2]，
+            new_points = self.conv2d(new_points, self.out_channel, [1, 2],
                                      self.name+'-c0_conv%d' % (i), [1, 2], padding='VALID',
                                      activation_fn='ReLU', training=training)
         new_points = tf.squeeze(new_points, [2])
@@ -179,7 +179,7 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
         # residual part
         if points is not None:
             if self.same_dim is True:
-                points = self.conv1d(points, self.out_channel, 1, self.name+'-merge_channel_fc', 1, padding='VALID', activation_fn='ReLU', training)
+                points = self.conv1d(points, self.out_channel, 1, self.name+'-merge_channel_fc', 1, padding='VALID', activation_fn='ReLU', training=training)
             if self.merge == 'add':
                 new_points = new_points + points
             elif self.merge == 'concat':
@@ -284,17 +284,17 @@ class pointnet_sa_module(tf.keras.layers.Layer):
             new_xyz, new_points, idx, grouped_xyz = sample_and_group_all(
                 xyz, points, self.use_xyz)
         else:
-            new_xyz, new_points, idx, grouped_xyz = sample_and_group(self.npoint, self.radius, self.nsample, xyz, points, knn=False, self.use_xyz)
+            new_xyz, new_points, idx, grouped_xyz = sample_and_group(self.npoint, self.radius, self.nsample, xyz, points, knn=False, use_xyz=self.use_xyz)
         # Point feature embedding
         for i, num_out_channel in enumerate(self.mlp):
             new_points = self.conv2d(new_points, num_out_channel, [1, 1],
                                      self.name+'-conv%d' % (i), [1, 1], padding='VALID',
                                      activation_fn='ReLU', training=training)
         # Pooling in local regions
-        if self.pooling = 'max':
+        if self.pooling == 'max':
             new_points = tf.compat.v1.reduce_max(
                 new_points, axis=[2], keepdims=True, name='maxpool')
-        elif self.pooling = 'avg':
+        elif self.pooling == 'avg':
             new_points = tf.compat.v1.reduce_mean(
                 new_points, axis=[2], keepdims=True, name='avgpool')
         else:
@@ -304,7 +304,7 @@ class pointnet_sa_module(tf.keras.layers.Layer):
 
 
 class pointnet_sa_module_msg(tf.keras.layers.Layer):
-    def __init__(self, npoint, radius_list, nsample_list, mlp_list, bn_decay, bn=True, use_xyz=True, name):
+    def __init__(self, npoint, radius_list, nsample_list, mlp_list, bn_decay, bn=True, use_xyz=True, name='sa-msg'):
         self.npoint = npoint
         self.radius_list = radius_list
         self.nsample_list = nsample_list
