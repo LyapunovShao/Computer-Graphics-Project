@@ -1,3 +1,4 @@
+import tensorflow as tf
 import argparse
 from argparse import FileType as File
 from logger import log
@@ -41,6 +42,7 @@ def parse_path(*paths):
 
 
 if __name__ == "__main__":
+    tf.compat.v1.disable_eager_execution()
     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
     parser.add_argument("-M","--model_config", type=str, default="conf/pointSIFT/pointSIFT.pyconf", help="The path for model configuration")
     parser.add_argument("-d", "--data", type=str, default="", help=DATA_OPTIONS_DESCRIPTION)

@@ -82,8 +82,11 @@ class GraphNode:
         # Compute the dependencies
         inputs = []
         for name, idx in self.param:
-            output = name_to_nodes[name].value()[idx] # Remember to make sure that output of a node is list or tuple
-            inputs.append(output)
+            if not name == 'None':
+                output = name_to_nodes[name].value()[idx]
+                inputs.append(output)
+            else:
+                inputs.append(None)
         self._value = self._compute(inputs)
         return self._value
 
@@ -102,7 +105,7 @@ class InputGraphNode(GraphNode):
         self._inputs = input
     
     def _compute(self, inputs):
-        return self._inputs
+        return [self._inputs]
 
 class IntermediateLayerGraphNode(GraphNode):
     """The normal graph node """
@@ -164,8 +167,7 @@ def net_from_config(model_conf, data_conf):
     if "extend_feature" in net_conf:
         logger.log(
             "\"extend_feature\" is deprecated, use \"input-feature-extend\" layer instead", color="yellow")
-
-    inputs = tf.keras.Input(shape=(point_count, feature_size))
+    inputs = tf.keras.Input(shape=(point_count, feature_size), batch_size=16)
     if net_conf["structure"] == "sequence":
         x = inputs  # Input layer
 
@@ -199,14 +201,13 @@ def net_from_config(model_conf, data_conf):
             f"Cannot name label of a layer to \"input\" or \"output\", check your layer labels"
         name_to_nodes["input"] = input_node
         name_to_nodes["output"] = output_node
-        pdb.set_trace()
         # Create the graph
         for conf in graph_confs:
             node_name = conf.get("label", None)
             param = conf.get("param", [])
             name_to_nodes[node_name].set_param(param)
-
-        return tf.keras.Model(inputs=inputs, outputs=output_node.value())
+        model = tf.keras.Model(inputs=inputs, outputs=output_node.value())
+        return model
     else:
         assert False, "\"{}\" is currently not supported".format(
             net_conf["structure"])
@@ -319,7 +320,7 @@ class ModelRunner:
         # Get the network
         logger.log("Creating network, train_dataset={}, test_dataset={}".format(self.train_dataset, self.test_dataset))
         net = net_from_config(self.model_conf, self.data_conf)
-
+        pdb.set_trace()
         # Get the learning_rate and optimizer
         logger.log("Creating learning rate schedule")
         lr_schedule = learning_rate_from_config(control_conf["learning_rate"])

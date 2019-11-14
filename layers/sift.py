@@ -5,7 +5,7 @@ from layers.tf_ops.pointSIFT_op.pointSIFT_op import pointSIFT_select, pointSIFT_
 from layers.tf_ops.grouping.tf_grouping import group_point, query_ball_point, knn_point
 from layers.tf_ops.sampling.tf_sampling import farthest_point_sample, gather_point
 from layers.tf_ops.interpolation.tf_interpolate import three_nn, three_interpolate
-
+import pdb
 # last fully conneted layer, containing 21.conv1d, 22.dropout, 23.conv1d
 
 @register_conf(name="SIFT-fc", scope="layer", conf_func="self")
@@ -31,7 +31,7 @@ class pointSIFT_fc_layer(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv1D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None, data_format='NHWC')
+                channel, kernel_size, strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -47,8 +47,10 @@ class pointSIFT_fc_layer(tf.keras.layers.Layer):
             self.sub_layers[name] = layer
         return layer(inputs, training)
 
-    def call(self, inputs, training, **kwargs):
-        points = inputs
+    def call(self, inputs, training=None, **kwargs):
+        points = inputs[0]
+        if training is None:
+            training = tf.keras.backend.learning_phase()
         seg = self.conv1d(points, self.out_channel, 1, self._name+'-conv0', 1,
                           padding='VALID', activation_fn='ReLU', training=training)
         seg = self.dropout(seg, self._name+'-dropout', training=training)
@@ -80,7 +82,7 @@ class associate_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv1D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None, data_format='NHWC')
+                channel, kernel_size, strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -89,8 +91,10 @@ class associate_module(tf.keras.layers.Layer):
             x = tf.nn.relu(x)
         return x
 
-    def call(self, inputs, training, **kwargs):
+    def call(self, inputs, training=None, **kwargs):
         points = []
+        if training is None:
+            training = tf.keras.backend.learning_phase()
         # make sure that points is a list but not a tuple
         for part in inputs:
             points.append(part)
@@ -128,7 +132,7 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv2D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None, data_format='NHWC')
+                channel, kernel_size, strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -141,7 +145,7 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv1D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None, data_format='NHWC')
+                channel, kernel_size, strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -150,8 +154,10 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
             x = tf.nn.relu(x)
         return x
 
-    def call(self, inputs, training, **kwargs):
+    def call(self, inputs, training=None, **kwargs):
         xyz, points = inputs
+        if training is None:
+            training = tf.keras.backend.learning_phase()
         # conv 1
         _, new_points, idx, _ = pointSIFT_group(self.radius,
                                                 xyz,
@@ -213,7 +219,7 @@ class pointSIFT_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv2D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None, data_format='NHWC')
+                channel, kernel_size, strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -222,8 +228,10 @@ class pointSIFT_module(tf.keras.layers.Layer):
             x = tf.nn.relu(x)
         return x
 
-    def call(self, inputs, training, **kwargs):
+    def call(self, inputs, training=None, **kwargs):
         xyz, points = inputs
+        if training is None:
+            training = tf.keras.backend.learning_phase()
         new_xyz, new_points, idx, grouped_xyz = pointSIFT_group(self.radius,
                                                                 xyz,
                                                                 points,
@@ -242,6 +250,7 @@ class pointSIFT_module(tf.keras.layers.Layer):
 @register_conf(name="pointnet-sa-module", scope="layer", conf_func="self")
 class pointnet_sa_module(tf.keras.layers.Layer):
     def __init__(self, npoint, radius, nsample, mlp, mlp2=None, group_all=False, bn_decay=0.9, bn=True, pooling='max', use_xyz=True, label='sa'):
+        super(pointnet_sa_module, self).__init__()
         self.npoint = npoint
         self.radius = radius
         self.nsample = nsample
@@ -267,7 +276,7 @@ class pointnet_sa_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv2D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None, data_format='NHWC')
+                channel, kernel_size, strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -276,8 +285,10 @@ class pointnet_sa_module(tf.keras.layers.Layer):
             x = tf.nn.relu(x)
         return x
 
-    def call(self, inputs, training, **kwargs):
+    def call(self, inputs, training=None, **kwargs):
         xyz, points = inputs
+        if training is None:
+            training = tf.keras.backend.learning_phase()
         # Sample and grouping
         if self.group_all:
             self.nsample = xyz.get_shape()[1].value
@@ -305,8 +316,9 @@ class pointnet_sa_module(tf.keras.layers.Layer):
 
 
 @register_conf(name="pointnet-fp-module", scope="layer", conf_func="self")
-class pointnew_fp_module(tf.keras.layers.Layer):
+class pointnet_fp_module(tf.keras.layers.Layer):
     def __init__(self, mlp, bn_decay=0.9, bn=True, label='fp'):
+        super(pointnet_fp_module, self).__init__()
         self.mlp = mlp
         self.bn_decay = bn_decay
         self.bn = bn
@@ -325,7 +337,7 @@ class pointnew_fp_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv2D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None, data_format='NHWC')
+                channel, kernel_size, strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -334,8 +346,10 @@ class pointnew_fp_module(tf.keras.layers.Layer):
             x = tf.nn.relu(x)
         return x
 
-    def call(self, inputs, training, **kwargs):
+    def call(self, inputs, training=None, **kwargs):
         xyz1, xyz2, points1, points2 = inputs
+        if training is None:
+            training = tf.keras.backend.learning_phase()
         dist, idx = three_nn(xyz1, xyz2)
         dist = tf.maximum(dist, 1e-10)
         norm = tf.compat.v1.reduce_sum((1.0 / dist), axis=2, keepdims=True)
@@ -349,7 +363,7 @@ class pointnew_fp_module(tf.keras.layers.Layer):
         else:
             new_points1 = interpolated_points
         new_points1 = tf.expand_dims(new_points1, 2)
-        for i, num_out_channel in enumerate(mlp):
+        for i, num_out_channel in enumerate(self.mlp):
             new_points1 = self.conv2d(new_points1, num_out_channel, [1, 1],
                                       self._name+'-conv_%d' % (i), [1, 1],
                                       padding='VALID', activation_fn='ReLU', training=training)
