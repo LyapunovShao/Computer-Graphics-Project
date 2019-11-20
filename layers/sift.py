@@ -31,7 +31,7 @@ class pointSIFT_fc_layer(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv1D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None)
+                channel, kernel_size, use_bias=False,strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -82,7 +82,7 @@ class associate_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv1D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None)
+                channel, kernel_size, use_bias=False,strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -132,7 +132,7 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv2D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None)
+                channel, kernel_size, use_bias=False, strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -145,7 +145,7 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv1D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None)
+                channel, kernel_size, use_bias=False,strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -219,7 +219,7 @@ class pointSIFT_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv2D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None)
+                channel, kernel_size, use_bias=False,strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -276,7 +276,7 @@ class pointnet_sa_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv2D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None)
+                channel, kernel_size, use_bias=False,strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:
@@ -337,7 +337,7 @@ class pointnet_fp_module(tf.keras.layers.Layer):
         layer = self.sub_layers.get(name)
         if not layer:
             layer = tf.keras.layers.Conv2D(
-                channel, kernel_size, strides=strides, padding=padding, activation=None)
+                channel, kernel_size, use_bias=False,strides=strides, padding=padding, activation=None)
             self.sub_layers[name] = layer
         x = layer(inputs, training=training)
         if self.bn:

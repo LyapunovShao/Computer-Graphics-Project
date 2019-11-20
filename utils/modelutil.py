@@ -3,6 +3,7 @@ import re
 import layers
 import tensorflow_core as tf
 import math
+import numpy as np
 from os import path, makedirs
 import logger
 from utils.kerasutil import ModelCallback
@@ -244,10 +245,43 @@ class ModelRunner:
         self.save_root_dir = save_root_dir
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
-
+        self.train_size = len(train_dataset)
+        self.point_size = 8192
         self._mode = mode or "new"
         assert self._mode in [_MODE_NEW, _MODE_RESUME, _MODE_RESUME_COPY], \
             "Unrecognized mode=\"{}\". Currently support \"new\", \"resume\" and \"resume-copy\""
+    def rotate_point_cloud_z(self, batch_data):
+        """Randomly rotate the point clouts to augment the dataset"""
+        rotated_data = np.zeros(batch_data.shape, dtype=np.float32)
+        for k in range(batch_data.shape[0]):
+            rotation_angle = np.random.uniform() * 2 * np.pi
+            cosval = np.cos(rotation_angle)
+            sinval = np.sin(rotation_angle)
+            rotation_matrix = np.array([[cosval, -sinval, 0],
+                                        [sinval, cosval, 0],
+                                        [0, 0, 1]])
+            shape_pc = batch_data[k, ...]
+            rotated_data[k, ...] = np.dot(shape_pc.reshape((-1, 3)),rotation_matrix)
+        return rotated_data           
+
+    def get_batch_dropout(self, dataset, idxs, start_idx, end_idx):
+        bsize = end_idx - start_idx
+        batch_data = np.zeros((bsize, self.point_size, 3))
+        batch_label = np.zeros((bsize, self.point_size), dtype=np.int32)
+        batch_smpw = np.zeros((bsize, self.point_size), dtype=np.float32)
+        for i in range(bsize):
+            ps, seg, smpw = dataset[idxs[i + start_idx]]
+            batch_data[i, ...] = ps
+            batch_label[i, :] = seg
+            batch_smpw[i, :] = smpw
+            
+            dropout_ratio = np.random.random() * 0.875 # 0-0.875
+            drop_idx = np.where(np.random.random((ps.shape[0])) <= dropout_ratio)[0]
+       
+            batch_data[i, drop_idx, :] = batch_data[i, 0, :]
+            batch_label[i, drop_idx] = batch_label[i, 0]
+            batch_smpw[i, drop_idx] *= 0
+        return batch_data, batch_label, batch_smpw
 
     def train(self):
         control_conf = self.model_conf["control"]
@@ -320,7 +354,6 @@ class ModelRunner:
         # Get the network
         logger.log("Creating network, train_dataset={}, test_dataset={}".format(self.train_dataset, self.test_dataset))
         net = net_from_config(self.model_conf, self.data_conf)
-        pdb.set_trace()
         # Get the learning_rate and optimizer
         logger.log("Creating learning rate schedule")
         lr_schedule = learning_rate_from_config(control_conf["learning_rate"])
@@ -328,7 +361,9 @@ class ModelRunner:
         optimizer = optimizer_from_config(lr_schedule, control_conf["optimizer"])
 
         # Get the loss
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, name="Loss")
+        # >>>>>
+        loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(name="Loss")
+        # >>>>>
 
         # Get the metrics
         # We add a logits loss in the metrics since the total loss will have regularization term
@@ -339,6 +374,30 @@ class ModelRunner:
 
         # Get the batch size
         batch_size = control_conf["batch_size"]
+
+        # >>>>>
+        net.summary()
+        train_epoch = control_conf.get("train_epoch", None)
+        iter_in_epoch = self.train_size // batch_size
+        pdb.set_trace() 
+        for epoch in range(train_epoch):
+            logger.log("Start of epoch {}".format(epoch))
+            train_idx = np.arange(0, self.train_size)
+            np.random.shuffle(train_idx)
+            for pos in range(iter_in_epoch):
+                # prepare batch data
+                start_idx = pos * batch_size
+                end_idx = (pos + 1) * batch_size
+                batch_data, batch_label, batch_smpw = self.get_batch_dropout(train_dataset, train_idx, start_idx, end_idx)
+                aug_data = self.rotate_point_cloud_z(batch_data)
+                # compute result of the net
+                with tf.GradientTape() as tape:
+                    logits = net(aug_data)
+                    loss_value = loss_fn(batch_label, logits, sample_weight=batch_smpw)
+                grads = tape.gradient(loss_value, net.trainable_weights)
+                optimizer.apply_gradients(zip(grads, net.trainable_weights))
+                logger.log("Training loss (for one batch) at step {}: {}".format(pos, float(loss_value)))
+        # >>>>>
 
         # Get the total step for training
         if "train_epoch" in control_conf:
