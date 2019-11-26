@@ -183,7 +183,9 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
                                      activation_fn=act, training=training)
         new_points = tf.squeeze(new_points, [2])
         # residual part
-        if points is not None:
+        #if points is not None:
+
+        if not (len(points.shape) == 1):
             if self.same_dim is True:
                 points = self.conv1d(points, self.out_channel, 1, self._name+'-merge_channel_fc', 1, padding='VALID', activation_fn='ReLU', training=training)
             if self.merge == 'add':
@@ -333,6 +335,15 @@ class pointnet_fp_module(tf.keras.layers.Layer):
             self.sub_layers[name] = layer
         return layer(inputs, training=training)
 
+    def conv2dn(self, inputs, channel, kernel_size, name, strides, padding, activation_fn, training):
+        layer = self.sub_layers.get(name)
+        if not layer:
+            layer = tf.keras.layers.Conv2D(
+                channel, kernel_size, use_bias=False, strides=strides, padding=padding)
+            self.sub_layers[name] = layer
+        x = layer(inputs, training=training)
+        return x
+
     def conv2d(self, inputs, channel, kernel_size, name, strides, padding, activation_fn, training):
         layer = self.sub_layers.get(name)
         if not layer:
@@ -356,7 +367,8 @@ class pointnet_fp_module(tf.keras.layers.Layer):
         norm = tf.tile(norm, [1, 1, 3])
         weight = (1.0 / dist) / norm
         interpolated_points = three_interpolate(points2, idx, weight)
-        if points1 is not None:
+        if not (len(points1.shape) == 1):
+        #if points1 is not None:
             # B,ndataset1,nchannel1+nchannel2
             new_points1 = tf.concat(
                 axis=2, values=[interpolated_points, points1])
@@ -376,7 +388,8 @@ def pointSIFT_group(radius, xyz, points, use_xyz=True):
     grouped_xyz = group_point(xyz, idx)  # (batch_size, npoint, 8, 3)
     # translation normalization
     grouped_xyz -= tf.tile(tf.expand_dims(xyz, 2), [1, 1, 8, 1])
-    if points is not None:
+    #if points is not None:
+    if not (len(points.shape) == 1):
         # (batch_size, npoint, 8, channel)
         grouped_points = group_point(points, idx)
         if use_xyz:
@@ -394,7 +407,8 @@ def pointSIFT_group_with_idx(xyz, idx, points, use_xyz=True):
     grouped_xyz = group_point(xyz, idx)  # (batch_size, npoint, 8, 3)
     # translation normalization
     grouped_xyz -= tf.tile(tf.expand_dims(xyz, 2), [1, 1, 8, 1])
-    if points is not None:
+    #if points is not None:
+    if not (len(points.shape)):
         # (batch_size, npoint, 8/32, channel)
         grouped_points = group_point(points, idx)
         if use_xyz:
@@ -412,7 +426,8 @@ def pointSIFT_group_four(radius, xyz, points, use_xyz=True):
     grouped_xyz = group_point(xyz, idx)  # (batch_size, npoint, 32, 3)
     # translation normalization
     grouped_xyz -= tf.tile(tf.expand_dims(xyz, 2), [1, 1, 32, 1])
-    if points is not None:
+    if not(len(points.shape)==1):
+    #if points is not None:
         # (batch_size, npoint, 8/32, channel)
         grouped_points = group_point(points, idx)
         if use_xyz:
@@ -430,7 +445,8 @@ def pointSIFT_group_four_with_idx(xyz, idx, points, use_xyz=True):
     grouped_xyz = group_point(xyz, idx)  # (batch_size, npoint, 8/32, 3)
     # translation normalization
     grouped_xyz -= tf.tile(tf.expand_dims(xyz, 2), [1, 1, 32, 1])
-    if points is not None:
+    #if points is not None:
+    if not (len(points.shape) == 1):
         # (batch_size, npoint, 8/32, channel)
         grouped_points = group_point(points, idx)
         if use_xyz:
@@ -470,7 +486,8 @@ def sample_and_group(npoint, radius, nsample, xyz, points, knn=False, use_xyz=Tr
     grouped_xyz = group_point(xyz, idx)  # (batch_size, npoint, nsample, 3)
     grouped_xyz -= tf.tile(tf.expand_dims(new_xyz, 2),
                            [1, 1, nsample, 1])  # translation normalization
-    if points is not None:
+    #if points is not None:
+    if not (len(points.shape) == 1):
         # (batch_size, npoint, nsample, channel)
         grouped_points = group_point(points, idx)
         if use_xyz:
@@ -504,7 +521,8 @@ def sample_and_group_all(xyz, points, use_xyz=True):
         (1, 1, nsample)), (batch_size, 1, 1)))
     # (batch_size, npoint=1, nsample, 3)
     grouped_xyz = tf.reshape(xyz, (batch_size, 1, nsample, 3))
-    if points is not None:
+    #if points is not None:
+    if not (len(points.shape) == 1):
         if use_xyz:
             # (batch_size, 16, 259)
             new_points = tf.concat([xyz, points], axis=2)

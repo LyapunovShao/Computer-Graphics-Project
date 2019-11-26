@@ -130,7 +130,6 @@ def load_dataset(dir, model_conf):
     conf = ioutil.pyconf(conf_path)
 
     assert conf["type"]["name"] in loaders, "Invalid dataset type for {}".format(conf["type"])
-
     train_dataset, test_dataset = loaders[conf["type"]["name"]](dir, conf, **model_conf)
     batch_size = model_conf["control"]["batch_size"]
     if conf["type"]["name"]=="dataset-h5":

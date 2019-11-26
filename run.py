@@ -89,9 +89,9 @@ if __name__ == "__main__":
     try:
         data_dir = scan_data_dirs[0]
         root_data_dir = parse_path(data_dir, "..")
-        log(f"✅️ {root_data_dir}")
+        log(f"{root_data_dir}")
     except IndexError:
-        log(f"❌ Cannot find the data directory")
+        log(f"cannot find the data directory")
         exit(1)
 
     # Get the model save directory, if not provided, place it with name "Models" side by side the data directory

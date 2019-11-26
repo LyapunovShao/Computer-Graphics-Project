@@ -106,7 +106,7 @@ class InputGraphNode(GraphNode):
         self._inputs = input
     
     def _compute(self, inputs):
-        return [self._inputs]
+        return self._inputs
 
 class IntermediateLayerGraphNode(GraphNode):
     """The normal graph node """
@@ -189,6 +189,7 @@ def net_from_config(model_conf, data_conf):
         outputs = x
         return tf.keras.Model(inputs=inputs, outputs=outputs)
     elif net_conf["structure"] == "graph":
+        inputs = [inputs, tf.keras.Input(shape=())]
         layer_confs = net_conf["layers"]
         graph_confs = net_conf["graph"]
         # Generate all the intermediate nodes and use labels to map them
