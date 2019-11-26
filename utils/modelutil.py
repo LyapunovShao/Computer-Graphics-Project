@@ -120,12 +120,19 @@ class IntermediateLayerGraphNode(GraphNode):
         if not isinstance(output, (list, tuple)):
             output = [output]
         return output
+class OutputGraphNode(GraphNode):
+    """experimental output node"""
+    def __init__(self, param=None):
+        super(OutputGraphNode, self).__init__(param)
 
+    def _compute(self, inputs):
+        return inputs[0]
+"""
 class OutputGraphNode(IntermediateLayerGraphNode):
-    """The output node of the graph"""
+    
     def __init__(self, param=None):
         super(OutputGraphNode, self).__init__(layer=tf.keras.layers.Lambda(tf.identity, name="Output"), param=param)
-
+"""
 def net_from_config(model_conf, data_conf):
     """
     Generate a keras network from configuration dict

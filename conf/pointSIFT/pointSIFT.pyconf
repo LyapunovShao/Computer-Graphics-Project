@@ -31,7 +31,7 @@
         "graph": [
             {"label": "input", "param": []},
             {"label": "SIFT-res-module-1", "param": [("input", 0), ("None", 0)]},
-            {"label": "output", "param": [("SIFT-res-module-1", 0), ("SIFT-res-module-1", 1)]}
+            {"label": "output", "param": [("SIFT-res-module-1", 1)]}
             #{"label": "pointnet-sa-module-1", "param": [("SIFT-res-module-1", 0), ("SIFT-res-module-1", 1)]},
             #{"label": "SIFT-res-module-2", "param": [("pointnet-sa-module-1", 0), ("pointnet-sa-module-1", 1)]},
             #{"label": "pointnet-sa-module-2", "param": [("SIFT-res-module-2", 0), ("SIFT-res-module-2", 1)]},
