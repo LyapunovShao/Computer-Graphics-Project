@@ -1,9 +1,13 @@
+
 # Local
 /test.py
 /test.ipynb
 script/temp/
 conf/**/*_temp.pyconf
 conf/**/*_test.pyconf
+tensorboard/*
+weights/.*
+weights/*
 
 # Libaries
 ops/*.dll

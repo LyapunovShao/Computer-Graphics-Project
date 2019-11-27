@@ -169,10 +169,11 @@ class pointSIFT_res_module(tf.keras.layers.Layer):
                                      activation_fn='ReLU', training=training)
         new_points = tf.squeeze(new_points, [2])
         # conv 2
-        _, new_points, idx, _ = pointSIFT_group_with_idx(xyz,
-                                                         idx=idx,
-                                                         points=new_points,
-                                                         use_xyz=self.use_xyz)
+        #_, new_points, idx, _ = pointSIFT_group_with_idx(xyz,
+        #                                                 idx=idx,
+        #                                                 points=new_points,
+                                                         #use_xyz=self.use_xyz)
+        new_points = group_point(new_points, idx)
         for i in range(3):
             if i == 2:
                 act = 'None'

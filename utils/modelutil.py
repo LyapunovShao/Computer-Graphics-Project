@@ -120,19 +120,19 @@ class IntermediateLayerGraphNode(GraphNode):
         if not isinstance(output, (list, tuple)):
             output = [output]
         return output
+"""
 class OutputGraphNode(GraphNode):
-    """experimental output node"""
     def __init__(self, param=None):
         super(OutputGraphNode, self).__init__(param)
 
     def _compute(self, inputs):
         return inputs[0]
 """
+
 class OutputGraphNode(IntermediateLayerGraphNode):
-    
     def __init__(self, param=None):
         super(OutputGraphNode, self).__init__(layer=tf.keras.layers.Lambda(tf.identity, name="Output"), param=param)
-"""
+    
 def net_from_config(model_conf, data_conf):
     """
     Generate a keras network from configuration dict
@@ -254,6 +254,7 @@ class ModelRunner:
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
         self.train_size = len(train_dataset)
+        self.test_size = len(test_dataset)
         self.point_size = 8192
         self._mode = mode or "new"
         assert self._mode in [_MODE_NEW, _MODE_RESUME, _MODE_RESUME_COPY], \
@@ -271,6 +272,18 @@ class ModelRunner:
             shape_pc = batch_data[k, ...]
             rotated_data[k, ...] = np.dot(shape_pc.reshape((-1, 3)),rotation_matrix)
         return rotated_data           
+
+    def get_batch(self, dataset, idxs, start_idx, end_idx):
+        bsize = end_idx - start_idx
+        batch_data = np.zeros((bsize, self.point_size, 3))
+        batch_label = np.zeros((bsize, self.point_size), dtype=np.int32) 
+        batch_smpw = np.zeros((bsize, self.point_size), dtype=np.float32) 
+        for i in range(bsize):
+            ps, seg, smpw = dataset[idxs[i + start_idx]] 
+            batch_data[i, ...]=ps
+            batch_label[i, :] = seg
+            batch_smpw[i, :] = smpw
+        return batch_data, batch_label, batch_smpw 
 
     def get_batch_dropout(self, dataset, idxs, start_idx, end_idx):
         bsize = end_idx - start_idx
@@ -382,16 +395,29 @@ class ModelRunner:
 
         # Get the batch size
         batch_size = control_conf["batch_size"]
-
+        
         # >>>>>
+        # just use part of the test set
         net.summary()
+        logger.log("Preparing test dataset") 
+        part_test_data, part_test_label, part_test_smpw = test_dataset[0][0], test_dataset[0][1], test_dataset[0][2]
+        for i in range(1, 10):
+            part_test_data = np.concatenate((part_test_data, test_dataset[i][0]), axis=0)
+            part_test_label = np.concatenate((part_test_label, test_dataset[i][1]), axis=0)
+            part_test_smpw = np.concatenate((part_test_smpw, test_dataset[i][2]), axis=0)
+        # after 10 epochs, test on the test set and save the weights
+        train_summary_writer = tf.summary.create_file_writer('tensorboard/train')
+        test_summary_writer = tf.summary.create_file_writer('tensorboard/test')
+        min_loss = 0.0
+        min_epoch = 0
         train_epoch = control_conf.get("train_epoch", None)
         iter_in_epoch = self.train_size // batch_size
-        pdb.set_trace() 
         for epoch in range(train_epoch):
+            ave_loss = 0.0
             logger.log("Start of epoch {}".format(epoch))
             train_idx = np.arange(0, self.train_size)
             np.random.shuffle(train_idx)
+            #"""
             for pos in range(iter_in_epoch):
                 # prepare batch data
                 start_idx = pos * batch_size
@@ -400,13 +426,42 @@ class ModelRunner:
                 aug_data = self.rotate_point_cloud_z(batch_data)
                 # compute result of the net
                 with tf.GradientTape() as tape:
-                    logits = net(aug_data)
+                    logits = net([aug_data, tf.zeros((1,))])[0, ...]
                     loss_value = loss_fn(batch_label, logits, sample_weight=batch_smpw)
                 grads = tape.gradient(loss_value, net.trainable_weights)
                 optimizer.apply_gradients(zip(grads, net.trainable_weights))
-                logger.log("Training loss (for one batch) at step {}: {}".format(pos, float(loss_value)))
+                logger.log("Training loss (for 1  batch) at batch {}: {}".format(pos, float(loss_value)))
+                ave_loss += float(loss_value)
+            ave_loss /= iter_in_epoch
+            with train_summary_writer.as_default():
+                tf.summary.scalar('train loss', ave_loss, step=epoch)
+            logger.log("End of epoch {}, average loss: {}".format(epoch, ave_loss))
+            #""" 
+            if epoch % 10 == 0:
+                test_loss = 0.0
+                test_batch_num = part_test_data.shape[0] // batch_size
+                test_idx = np.arange(0, part_test_data.shape[0])
+                for batch in range(test_batch_num):
+                   start_idx = batch * batch_size
+                   end_idx = (batch + 1) * batch_size
+                   #batch_data, batch_label, batch_smpw = self.get_batch(test_dataset, test_idx, start_idx, end_idx)
+                   batch_data = part_test_data[start_idx:end_idx, ...]
+                   batch_label = part_test_label[start_idx:end_idx, ...]
+                   batch_smpw = part_test_smpw[start_idx:end_idx, ...]
+                   logits = net([batch_data, tf.zeros((1,))])[0, ...]
+                   test_loss += float(loss_fn(batch_label, logits, sample_weight=batch_smpw))
+                test_loss /= test_batch_num
+                with test_summary_writer.as_default():
+                    tf.summary.scalar('test loss', test_loss, step=epoch)
+                logger.log("Test loss: {}".format(float(test_loss)))
+                if epoch == 0 or ( epoch > 0 and min_loss > test_loss) or epoch >= 900:
+                    net.save_weights('weights/pointSIFT_weights')
+                    min_loss = test_loss
+                    min_epoch = epoch
+                    logger.log("Weights saved at epoch {}".format(epoch))
+                   
         # >>>>>
-
+        """
         # Get the total step for training
         if "train_epoch" in control_conf:
             train_step = int(math.ceil(control_conf["train_epoch"] * self.data_conf["train"]["size"] / batch_size))
@@ -449,3 +504,4 @@ class ModelRunner:
             callbacks=[tensorboard_callback, model_callback],
             shuffle=False  # We do the shuffle ourself
         )
+        """
